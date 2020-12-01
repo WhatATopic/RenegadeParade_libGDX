@@ -7,10 +7,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
@@ -25,7 +23,8 @@ public class InGameScreen implements Screen
     private Stage stage;
     private SpriteBatch batch;
     private Viewport viewport;
-    private OrthographicCamera camera;
+    private OrthographicCamera gameCamera;
+    private OrthographicCamera interfaceCamera;
     private Touchpad touchpad;
     private Touchpad.TouchpadStyle touchpadStyle;
     private Skin touchpadSkin;
@@ -47,8 +46,9 @@ public class InGameScreen implements Screen
         centerY = Gdx.graphics.getHeight()/2;
 
         batch = new SpriteBatch();
-        camera = new OrthographicCamera();
-        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        gameCamera = new OrthographicCamera();
+        interfaceCamera = new OrthographicCamera();
+        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), interfaceCamera);
         stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
         //Create a touchpad skin
@@ -123,6 +123,7 @@ public class InGameScreen implements Screen
         backgroundSprite.setOrigin(0,0);
         //Set position to center of the screen
         blockSprite.setPosition(centerX-blockSprite.getWidth()/2, centerY-blockSprite.getHeight()/2);
+        gameCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         speed = 4f;
     }
 
@@ -132,20 +133,24 @@ public class InGameScreen implements Screen
         //Clear the background
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        camera.update();
+
         //Touchpad delta values
         float deltaX = touchpad.getKnobPercentX() * speed;
         float deltaY = touchpad.getKnobPercentY() * speed;
         float originX = backgroundSprite.getOriginX();
         float originY = backgroundSprite.getOriginY();
-        //Move background sprite with TouchPad
-        backgroundSprite.translate(-deltaX,-deltaY);
-        //System.out.println("Starting position X:" + originX + " Y:" + originY);
-        //System.out.println("Current position X:" + backgroundSprite.getX() * -1 + " Y:" + backgroundSprite.getY() * -1);
+        //Move game cameras with TouchPad
+        gameCamera.translate(deltaX,deltaY);
+        gameCamera.update();
+        System.out.println("Current position X:" + gameCamera.position.x + " Y:" + gameCamera.position.y + " Z:" + gameCamera.position.z);
 
         //Draw
+        batch.setProjectionMatrix(gameCamera.combined);
         batch.begin();
         backgroundSprite.draw(batch);
+        batch.end();
+        batch.setProjectionMatrix(interfaceCamera.combined);
+        batch.begin();
         blockSprite.draw(batch);
         batch.end();
         stage.act(Gdx.graphics.getDeltaTime());
